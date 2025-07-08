@@ -78,25 +78,53 @@
     .course-table tr:nth-child(even) {
         background-color: #f2f2f2;
     }
+
+    .center-single {
+        display: flex;
+        justify-content: center;
+        margin-top: 1rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 {% if degree and stream and year %}
 <p class="section-title">{{ degree }} - {{ stream }} ({{ year }})</p>
+{% elif degree and stream %}
+<p class="section-title">{{ degree }} - {{ stream }}</p>
 {% else %}
 <p class="section-title">Select a Campus</p>
 {% endif %}
+
+{% if campuses|length == 1 %}
+<div class="center-single">
+    {% if degree and stream and year %}
+        <a href="{{ url_for('view_sections', degree=degree, stream=stream, year=year, campus=campuses[0].name) }}" class="lux-button-link">
+            {{ campuses[0].name }}
+        </a>
+    {% elif degree and stream %}
+        <a href="{{ url_for('view_sections', degree=degree, stream=stream, year=1, campus=campuses[0].name) }}" class="lux-button-link">
+            {{ campuses[0].name }}
+        </a>
+    {% else %}
+        <a href="/campus/{{ campuses[0].name }}" class="lux-button-link">{{ campuses[0].name }}</a>
+    {% endif %}
+</div>
+{% else %}
 <div class="grid-list">
     {% for campus in campuses %}
         {% if degree and stream and year %}
-            <a href="{{ url_for('view_sections', degree=degree, stream=stream, year=year, campus=campus) }}" class="lux-button-link">
-                {{ campus }}
+            <a href="{{ url_for('view_sections', degree=degree, stream=stream, year=year, campus=campus.name) }}" class="lux-button-link">
+                {{ campus.name }}
+            </a>
+        {% elif degree and stream %}
+            <a href="{{ url_for('view_sections', degree=degree, stream=stream, year=1, campus=campus.name) }}" class="lux-button-link">
+                {{ campus.name }}
             </a>
         {% else %}
             <a href="/campus/{{ campus.name }}" class="lux-button-link">{{ campus.name }}</a>
         {% endif %}
-
     {% endfor %}
 </div>
+{% endif %}
 {% endblock %}

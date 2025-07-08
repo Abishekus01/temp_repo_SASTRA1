@@ -3,7 +3,7 @@ from typehints import *
 import secrets
 import show_data
 import fetch_data
-#from fetch_data import get_courses_by_degree_stream_year
+#import fetch_data.get_courses_by_degree_stream_year
 import mysql_connector as sql
 
 app: Flask = Flask(__name__, template_folder="templates")
@@ -133,31 +133,44 @@ def show_degree_programmes(degree: str) -> str:
 		return render_template("programme.html", programmes=programmes, degree=degree)
 	return render_template("failed.html", reason="Unknown error occurred")
 
-# This handles /programme/B.Tech/CSE
+@app.route("/programme/<string:degree>/<string:stream>/campus")
+def view_programme_campuses(degree: str, stream: str):
+	if sql.cursor:
+		programme_id = show_data.get_programme_id(sql.cursor, degree=degree, stream=stream)
+		programme = show_data.get_programme(sql.cursor, programme_id=programme_id)
+		if not programme:
+			return render_template("failed.html", reason="Programme not found.")
+		campuses = show_data.get_campuses(sql.cursor, programme_id=programme_id)
+		return render_template("campus.html", campuses=campuses, degree=degree, stream=stream)
+	return render_template("failed.html", reason="Unknown error occurred")
+
 @app.route("/programme/<string:degree>/<string:stream>")
-def view_years(degree: str, stream: str):
-	durations = {
-		"B.Tech": 4,
-		"B.A": 3,
-		"B.Sc": 3,
-		"B.Com": 3,
-		"M.Tech": 2,
-		"M.A": 2,
-		"M.Sc": 2
-	}
-	duration = durations.get(degree, 4)
-	years = list(range(1, duration + 1))
-	all_courses = {}
-	for y in years:
-		courses = fetch_data.get_courses_by_degree_stream_year(sql.cursor, degree, stream, y)
-		all_courses[y] = courses
-	return render_template("year.html", degree=degree, stream=stream, years=years, all_courses=all_courses)
+def view_stream(degree: str, stream: str):
+	if sql.cursor:
+		programme_id = show_data.get_programme_id(sql.cursor, degree=degree, stream=stream)
+		programme = show_data.get_programme(sql.cursor, programme_id=programme_id)
+		if not programme:
+			return render_template("failed.html", reason="Programme not found.")
+		campuses = show_data.get_campuses(sql.cursor, programme_id=programme_id)
+		durations = {
+			"B.Tech": 4,
+			"B.A": 3,
+			"B.Sc": 3,
+			"B.Com": 3,
+			"M.Tech": 2,
+			"M.A": 2,
+			"M.Sc": 2
+		}
+		duration = durations.get(degree, 4)
+		years = list(range(1, duration + 1))
+		return render_template("campus.html", campuses=campuses, degree=degree, stream=stream, years=years)
+	return render_template("failed.html", reason="Unknown error occurred")
+
 
 @app.route("/programme/<string:degree>/<string:stream>/all")
 def view_all_courses(degree: str, stream: str):
 	programme_id = show_data.get_programme_id(sql.cursor, degree=degree, stream=stream)
 	assert programme_id is not None, "Invalid programme"
-
 	courses = fetch_data.get_courses(sql.cursor, programme_id=programme_id)
 	return render_template("course.html", degree=degree, stream=stream, courses=courses)
 
@@ -200,7 +213,7 @@ def faculty_details() -> str:
 
 @app.route("/health")
 def health():
-    return "OK", 200
+	return "OK", 200
 
 @app.errorhandler(404)
 def page_not_found(error: NotFound) -> tuple[str, int]:
@@ -210,6 +223,5 @@ if __name__ == "__main__":
 	app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 	app.config['SESSION_COOKIE_HTTPONLY'] = True
 	app.config['SESSION_COOKIE_SECURE'] = True
-
 	app.config.update(SESSION_COOKIE_SECURE=True, SESSION_COOKIE_HTTPSONLY=True)
-	app.run(host="0.0.0.0", port=5000,debug=False)
+	app.run(host="0.0.0.0", port=5000, debug=False)
